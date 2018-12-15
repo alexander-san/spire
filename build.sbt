@@ -1,3 +1,4 @@
+import microsites._
 import ReleaseTransformations._
 
 import sbtcrossproject.{CrossType, crossProject}
@@ -132,9 +133,11 @@ lazy val extrasJVM = extras.jvm
 lazy val extrasJS = extras.js
 
 lazy val docs = project.in(file("docs"))
+  .enablePlugins(MicrositesPlugin)
   .dependsOn(macrosJVM, coreJVM, extrasJVM)
   .settings(moduleName := "spire-docs")
   .settings(spireSettings:_*)
+  .settings(docSettings: _*)
   .settings(noPublishSettings)
   .enablePlugins(TutPlugin)
   .settings(commonJvmSettings:_*)
@@ -309,6 +312,59 @@ lazy val commonJvmSettings = Seq(
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 )
 
+// TODO: restore for UniDoc
+// lazy val docsMappingsAPIDir = settingKey[String]("Name of subdirectory in site target directory for api docs")
+
+lazy val docSettings = Seq(
+  micrositeName := "Spire",
+  micrositeDescription := "Powerful new number types and numeric abstractions for Scala",
+  micrositeAuthor := "Spire contributors",
+  micrositeHighlightTheme := "atom-one-light",
+  micrositeHomepage := "http://denisrosset.github.io/spire",
+  micrositeBaseUrl := "spire",
+//  micrositeDocumentationUrl := "/symdpoly/api/net/alasc/symdpoly/index.html",
+//  micrositeDocumentationLabelDescription := "API Documentation",
+  micrositeGithubOwner := "denisrosset",
+  micrositeGithubRepo := "spire",
+  micrositePalette := Map(
+    "brand-primary" -> "#5B5988",
+    "brand-secondary" -> "#292E53",
+    "brand-tertiary" -> "#222749",
+    "gray-dark" -> "#49494B",
+    "gray" -> "#7B7B7E",
+    "gray-light" -> "#E5E5E6",
+    "gray-lighter" -> "#F4F3F4",
+    "white-color" -> "#FFFFFF"),
+  micrositeConfigYaml := ConfigYml(
+    yamlCustomProperties = Map(
+      "spireVersion"    -> version.value,
+      "scalaVersion"  -> scalaVersion.value
+    )
+  ),
+//  autoAPIMappings := true,
+//  unidocProjectFilter in (ScalaUnidoc, unidoc) :=
+//    inProjects(docsSourcesAndProjects(scalaVersion.value)._2:_*),
+//  docsMappingsAPIDir := "api",
+//  addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), docsMappingsAPIDir),
+  ghpagesNoJekyll := false,
+  fork := true,
+  javaOptions += "-Xmx4G", // to have enough memory in forks
+//  fork in tut := true,
+//  fork in (ScalaUnidoc, unidoc) := true,
+  scalacOptions in (ScalaUnidoc, unidoc) ++= Seq(
+    "-Xfatal-warnings",
+    "-groups",
+    "-doc-source-url", scmInfo.value.get.browseUrl + "/tree/master€{FILE_PATH}.scala",
+    "-sourcepath", baseDirectory.in(LocalRootProject).value.getAbsolutePath,
+    "-diagrams"
+  ),
+  scalacOptions in Tut ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))),
+  git.remoteRepo := "git@github.com:denisrosset/spire.git",
+  includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.yml" | "*.md" | "*.svg",
+  includeFilter in Jekyll := (includeFilter in makeSite).value
+)
+
+
 lazy val publishSettings = Seq(
   homepage := Some(url("http://spire-math.org")),
   licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
@@ -346,16 +402,7 @@ lazy val benchmarkSettings = Seq(
     // comparisons
     "org.apfloat" % "apfloat" % apfloatVersion,
     "org.jscience" % "jscience" % jscienceVersion,
-    "org.apache.commons" % "commons-math3" % apacheCommonsMath3Version,
-
-    // thyme
-    "ichi.bench" % "thyme" %  "0.1.0" from "http://plastic-idolatry.com/jars/thyme-0.1.0.jar",
-
-    // caliper stuff
-    "com.google.guava" % "guava" %  "18.0",
-    "com.google.code.java-allocation-instrumenter" % "java-allocation-instrumenter" %  "2.1",
-    "com.google.code.caliper" % "caliper" % "1.0-SNAPSHOT" from "http://plastic-idolatry.com/jars/caliper-1.0-SNAPSHOT.jar",
-    "com.google.code.gson" % "gson" % "1.7.2"
+    "org.apache.commons" % "commons-math3" % apacheCommonsMath3Version
   ),
 
   // enable forking in run
